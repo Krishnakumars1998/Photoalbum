@@ -7,10 +7,19 @@
     <style>
         #imageContainer {
             margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
         }
         img {
             max-width: 100%;
             height: auto;
+            margin: 10px;
+        }
+        .btn-container {
+            margin-top: 20px;
+        }
+        .btn-container button {
+            margin-right: 10px;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/camanjs/4.1.2/caman.full.min.js"></script>
@@ -19,10 +28,10 @@
 <body>
     <h1>Image Processing Operations</h1>
     <div>
-        <input type="file" accept="image/*" onchange="uploadImage(event)">
+        <input type="file" accept="image/*" multiple onchange="uploadImages(event)">
     </div>
     <div id="imageContainer"></div>
-    <div>
+    <div class="btn-container">
         <button onclick="checkImageColor()">Check Color</button>
         <button onclick="makeImageReddish()">Make Reddish</button>
         <button onclick="makeImageBlueish()">Make Blueish</button>
@@ -34,231 +43,207 @@
         <button onclick="convertToGrayscale()">Convert to Grayscale</button>
         <button onclick="generateQRCode()">Generate QR Code</button>
         <button onclick="filterImages()">Filter Images</button>
-        <button onclick="createThumbnails()">Create Thumbnails</button>
+        <select onchange="selectThumbnailSize()">
+            <option value="100">Thumbnail (100x100)</option>
+            <option value="200">Thumbnail (200x200)</option>
+            <option value="300">Thumbnail (300x300)</option>
+        </select>
     </div>
 
     <script>
-        var selectedImage = null;
-
-        function uploadImage(event) {
-            var file = event.target.files[0];
-            if (!file) return;
-            
+        function uploadImages(event) {
+            var files = event.target.files;
             var imageContainer = document.getElementById('imageContainer');
-            var img = document.createElement('img');
-            img.onload = function() {
-                selectedImage = img;
-            }
-            img.src = URL.createObjectURL(file);
-            img.id = 'selectedImage';
             imageContainer.innerHTML = '';
-            imageContainer.appendChild(img);
+
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                var img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.onload = function() {
+                    URL.revokeObjectURL(this.src);
+                }
+                imageContainer.appendChild(img);
+            }
         }
 
         function checkImageColor() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, img.width, img.height);
 
-            var canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, img.width, img.height);
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var pixels = imageData.data;
+                var redCount = 0;
+                var greenCount = 0;
+                var blueCount = 0;
 
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            var pixels = imageData.data;
-            var redCount = 0;
-            var greenCount = 0;
-            var blueCount = 0;
-
-            for (var i = 0; i < pixels.length; i += 4) {
-                var red = pixels[i];
-                var green = pixels[i + 1];
-                var blue = pixels[i + 2];
-                if (red > green + blue) {
-                    redCount++;
-                } else if (green > red + blue) {
-                    greenCount++;
-                } else if (blue > red + green) {
-                    blueCount++;
+                for (var i = 0; i < pixels.length; i += 4) {
+                    var red = pixels[i];
+                    var green = pixels[i + 1];
+                    var blue = pixels[i + 2];
+                    if (red > green + blue) {
+                        redCount++;
+                    } else if (green > red + blue) {
+                        greenCount++;
+                    } else if (blue > red + green) {
+                        blueCount++;
+                    }
                 }
-            }
 
-            var totalPixels = pixels.length / 4;
-            var redPercentage = (redCount / totalPixels) * 100;
-            var greenPercentage = (greenCount / totalPixels) * 100;
-            var bluePercentage = (blueCount / totalPixels) * 100;
+                var totalPixels = pixels.length / 4;
+                var redPercentage = (redCount / totalPixels) * 100;
+                var greenPercentage = (greenCount / totalPixels) * 100;
+                var bluePercentage = (blueCount / totalPixels) * 100;
 
-            var dominantColor;
-            if (redPercentage > 50) {
-                dominantColor = 'Reddish';
-            } else if (greenPercentage > 50) {
-                dominantColor = 'Greenish';
-            } else if (bluePercentage > 50) {
-                dominantColor = 'Blueish';
-            } else {
-                dominantColor = 'None';
-            }
+                var dominantColor;
+                if (redPercentage > 50) {
+                    dominantColor = 'Reddish';
+                } else if (greenPercentage > 50) {
+                    dominantColor = 'Greenish';
+                } else if (bluePercentage > 50) {
+                    dominantColor = 'Blueish';
+                } else {
+                    dominantColor = 'None';
+                }
 
-            alert('Dominant Color: ' + dominantColor);
+                alert('Dominant Color of Image: ' + dominantColor);
+            });
         }
 
         function makeImageReddish() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
 
-            var canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var data = imageData.data;
 
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            var data = imageData.data;
+                for (var i = 0; i < data.length; i += 4) {
+                    data[i] += 50;
+                    data[i + 1] -= 25;
+                    data[i + 2] -= 25;
+                }
 
-            for (var i = 0; i < data.length; i += 4) {
-                data[i] += 50;
-                data[i + 1] -= 25;
-                data[i + 2] -= 25;
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            img.src = canvas.toDataURL();
+                ctx.putImageData(imageData, 0, 0);
+                img.src = canvas.toDataURL();
+            });
         }
 
         function makeImageBlueish() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
 
-            var canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var data = imageData.data;
 
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            var data = imageData.data;
+                for (var i = 0; i < data.length; i += 4) {
+                    data[i] -= 25;
+                    data[i + 1] -= 25;
+                    data[i + 2] += 50;
+                }
 
-            for (var i = 0; i < data.length; i += 4) {
-                data[i] -= 25;
-                data[i + 1] -= 25;
-                data[i + 2] += 50;
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            img.src = canvas.toDataURL();
+                ctx.putImageData(imageData, 0, 0);
+                img.src = canvas.toDataURL();
+            });
         }
 
         function makeImageGreenish() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
 
-            var canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var data = imageData.data;
 
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            var data = imageData.data;
+                for (var i = 0; i < data.length; i += 4) {
+                    data[i] -= 25;
+                    data[i + 1] += 50;
+                    data[i + 2] -= 25;
+                }
 
-            for (var i = 0; i < data.length; i += 4) {
-                data[i] -= 25;
-                data[i + 1] += 50;
-                data[i + 2] -= 25;
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            img.src = canvas.toDataURL();
+                ctx.putImageData(imageData, 0, 0);
+                img.src = canvas.toDataURL();
+            });
         }
 
         function duplicateImage() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
-
-            var newImg = img.cloneNode(true);
-            document.getElementById('imageContainer').appendChild(newImg);
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var newImg = img.cloneNode(true);
+                document.getElementById('imageContainer').appendChild(newImg);
+            });
         }
 
         function increaseBrightness() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
-
-            Caman(img, function () {
-                this.brightness(20).render();
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                Caman(img, function () {
+                    this.brightness(20).render();
+                });
             });
         }
 
         function reduceResolution() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
-
-            Caman(img, function () {
-                this.resize({ width: img.width / 2, height: img.height / 2 }).render();
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                Caman(img, function () {
+                    this.resize({ width: img.width / 2, height: img.height / 2 }).render();
+                });
             });
         }
 
         function createAvatar() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                console.error('Image element not found.');
-                return;
-            }
-
-            var canvas = document.createElement('canvas');
-            canvas.width = 100;
-            canvas.height = 100;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            img.src = canvas.toDataURL();
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var canvas = document.createElement('canvas');
+                canvas.width = 100;
+                canvas.height = 100;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                img.src = canvas.toDataURL();
+            });
         }
 
         function convertToGrayscale() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                console.error('Image element not found.');
-                return;
-            }
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
 
-            var canvas = document.createElement('canvas');
-            var ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var data = imageData.data;
 
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            var data = imageData.data;
+                for (var i = 0; i < data.length; i += 4) {
+                    var avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i] = avg;
+                    data[i + 1] = avg;
+                    data[i + 2] = avg;
+                }
 
-            for (var i = 0; i < data.length; i += 4) {
-                var avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                data[i] = avg;
-                data[i + 1] = avg;
-                data[i + 2] = avg;
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            img.src = canvas.toDataURL();
+                ctx.putImageData(imageData, 0, 0);
+                img.src = canvas.toDataURL();
+            });
         }
 
         function generateQRCode() {
@@ -271,32 +256,28 @@
         }
 
         function filterImages() {
-            var images = document.getElementsByTagName('img');
             var altText = prompt("Enter alt text to filter images:");
-
-            for (var i = 0; i < images.length; i++) {
-                var img = images[i];
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
                 if (img.alt.toLowerCase().includes(altText.toLowerCase())) {
                     img.style.display = 'inline-block';
                 } else {
                     img.style.display = 'none';
                 }
-            }
+            });
         }
 
-        function createThumbnails() {
-            var img = document.getElementById('selectedImage');
-            if (!img) {
-                alert('Please load an image first.');
-                return;
-            }
-
-            var canvas = document.createElement('canvas');
-            canvas.width = 100;
-            canvas.height = 100;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            img.src = canvas.toDataURL();
+        function selectThumbnailSize() {
+            var size = document.querySelector('select').value;
+            var images = document.querySelectorAll('#imageContainer img');
+            images.forEach(function(img) {
+                var canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                img.src = canvas.toDataURL();
+            });
         }
     </script>
 </body>
